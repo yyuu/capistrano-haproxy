@@ -1,0 +1,12 @@
+global<% haproxy_global.each { |name, global_defs| [ global_defs ].flatten.each { |d| %>
+    <%= name %> <%= d %><% } } %>
+
+defaults<% haproxy_defaults.each { |name, defaults_defs| [ defaults_defs ].flatten.each { |d| %>
+    <%= name %> <%= d %><% } } %>
+
+<% haproxy_listens.each { |listen_name, listen_defs| %>
+listen <%= listen_name %><% listen_defs.each { |param_name, param_defs| [ param_defs ].flatten.each { |d| %>
+    <%= param_name %> <%= d %><% } } %>
+<% } %>
+
+# vim:set ft=eruby :
