@@ -78,7 +78,7 @@ module Capistrano
           # Do not run automatically during normal `deploy' to avoid slow down.
           # If you want to do so, add following line in your ./config/deploy.rb
           #
-          # after 'deploy:update', 'haproxy:update'
+          # after 'deploy:finalize_update', 'haproxy:update'
 
           task(:_update, :roles => :app, :except => { :no_release => true }) {
             configure
