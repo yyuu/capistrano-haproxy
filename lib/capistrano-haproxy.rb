@@ -1,6 +1,5 @@
 require "capistrano-haproxy/version"
 require "erb"
-require "tempfile"
 require "uri"
 
 module Capistrano
@@ -123,13 +122,6 @@ module Capistrano
             # TODO: setup (sysvinit|daemontools|upstart|runit|systemd) service of HAProxy
           }
 
-          def tempfile(name)
-            f = Tempfile.new(name)
-            path = f.path
-            f.close(true) # close and remove tempfile immediately
-            path
-          end
-
           def template(file)
             if File.file?(file)
               File.read(file)
@@ -144,7 +136,7 @@ module Capistrano
           _cset(:haproxy_configure_files, %w(/etc/default/haproxy haproxy.cfg))
           task(:configure, :roles => :app, :except => { :no_release => true }) {
             srcs = haproxy_configure_files.map { |file| File.join(haproxy_template_path, file) }
-            tmps = haproxy_configure_files.map { |file| tempfile('capistrano-haproxy') }
+            tmps = haproxy_configure_files.map { |file| capture("mktemp").chomp }
             dsts = haproxy_configure_files.map { |file| File.expand_path(file) == file ? file : File.join(haproxy_path, file) }
             begin
               srcs.zip(tmps) do |src, tmp|
