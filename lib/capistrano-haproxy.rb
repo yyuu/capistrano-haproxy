@@ -136,7 +136,7 @@ module Capistrano
           _cset(:haproxy_configure_files, %w(/etc/default/haproxy haproxy.cfg))
           task(:configure, :roles => :app, :except => { :no_release => true }) {
             srcs = haproxy_configure_files.map { |file| File.join(haproxy_template_path, file) }
-            tmps = haproxy_configure_files.map { |file| capture("mktemp").chomp }
+            tmps = haproxy_configure_files.map { |file| capture("t=$(mktemp /tmp/capistrano-haproxy.XXXXXXXXXX);rm -f $t;echo $t").chomp }
             dsts = haproxy_configure_files.map { |file| File.expand_path(file) == file ? file : File.join(haproxy_path, file) }
             begin
               srcs.zip(tmps) do |src, tmp|
