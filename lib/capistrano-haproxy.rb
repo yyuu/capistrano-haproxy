@@ -1,4 +1,6 @@
 require "capistrano-haproxy/version"
+require "capistrano/configuration/actions/file_transfer_ext"
+require "capistrano/configuration/resources/file_resources"
 require "erb"
 require "uri"
 
@@ -122,35 +124,12 @@ module Capistrano
             # TODO: setup (sysvinit|daemontools|upstart|runit|systemd) service of HAProxy
           }
 
-          def template(file)
-            if File.file?(file)
-              File.read(file)
-            elsif File.file?("#{file}.erb")
-              ERB.new(File.read("#{file}.erb")).result(binding)
-            else
-              abort("No such template: #{file} or #{file}.erb")
-            end
-          end
-
           _cset(:haproxy_template_path, File.join(File.dirname(__FILE__), 'capistrano-haproxy', 'templates'))
           _cset(:haproxy_configure_files, %w(/etc/default/haproxy haproxy.cfg))
           task(:configure, :roles => :app, :except => { :no_release => true }) {
-            srcs = haproxy_configure_files.map { |file| File.join(haproxy_template_path, file) }
-            tmps = haproxy_configure_files.map { |file| capture("t=$(mktemp /tmp/capistrano-haproxy.XXXXXXXXXX);rm -f $t;echo $t").chomp }
-            dsts = haproxy_configure_files.map { |file| File.expand_path(file) == file ? file : File.join(haproxy_path, file) }
-            begin
-              srcs.zip(tmps) do |src, tmp|
-                put(template(src), tmp)
-              end
-              execute = []
-              dirs = dsts.map { |path| File.dirname(path) }.uniq
-              execute << "#{sudo} mkdir -p #{dirs.map { |dir| dir.dump }.join(' ')}" unless dirs.empty?
-              tmps.zip(dsts) do |tmp, dst|
-                execute << "( diff -u #{dst.dump} #{tmp.dump} || #{sudo} mv -f #{tmp.dump} #{dst.dump} )"
-              end
-              run(execute.join(' && ')) unless execute.empty?
-            ensure
-              run("rm -f #{tmps.map { |t| t.dump }.join(' ')}") unless tmps.empty?
+            haproxy_configure_files.each do |f|
+              safe_put(template(f, :path => haproxy_template_path), ( File.expand_path(f) == f ? f : File.join(haproxy_path, f) ),
+                       :place => :if_modified, :sudo => true)
             end
           }
 
